@@ -1,0 +1,85 @@
+12/03/2026|08:00|15:00|-- Néttoyage caisson mécatherm coté moteur 
+    - néttoyage grille d'aspiration 
+- Néttoyage bac à condensat  station de vanne Machine a glace 
+- Contrôle journalière salle des machine
+- Mesure des intensité des pompe station de vanne Alcali froid 
+tunel, 104, 105, 106, 107, 117, Machine a glace A et B
+11/03/2026|08:00|15:00|- Intervention sur porte chambre froide 101 
+    - résistance de porte retiré en attendant la nouvelle ( en commande ) 
+- controle journalière de la salle des machines 
+- contrôle et inventaire des armoire de scurité NH3
+13/03/2026|08:00|15:00|- Nettoyage evapo fritch
+- nettoyage condenseur chambre froide positif fritch
+17/03/2026|08:00|15:00|- Nettoyage évapo couloir 15A
+-intervention cheval blanc côntrole du capteur Hygro
+18/03/2026|08:00|15:00|-intervention sur boite de commande chambre foide mécartherm
+    - remplacement automate + voyant marche 
+-Néttoyage du condenseur  CO2 Cheval Blanc 
+     - Recherche de fuite sur réseaux CO2  salle des machine , combles
+     -remise en place du capteur Hygrométrie en salle de production
+19/03/2026|08:00|15:00|- controle avant intervention pétrigel 
+    - remplacement du flow switch plus sonde de température retour d'eau ( groupe 410	)
+- Recherche de fuite Co2 station vanne produit fini 1 et 2 Cheval blanc 
+- mise en place de calorifuge sur boucle au niveau du caisson 40b comble
+23/03/2026|08:00|15:00|-Nettoyage complet caisson mécatherm 39 
+     - remplacement des filtre G4 X4 , F8 x4 
+      remarque: Caisson tres encrâssés, prévoir une évacution au niveau des filtre car celle-ci ne s'écoule pas 
+- installation de 2 bac a condensat cheval blanc dans le stockage  ingrédient
+24/03/2026|08:00|15:00|- installation bac a condensat cheval balnc (suite )
+   - intervention sur Machine à glace ( condense beaucoup ) 
+   - intervention sur chambre négatif produit fini , resserage des raccord union des condensat
+26/03/2026|08:00|15:00|-Mise en place d'un bac a condensat sur boucle au niveau du caisson 40b , évacuation raccorder a celui du caisson 40B
+27/03/2026|08:00|15:00|-vidange du bouteillons d'huile dans la salle des machine r+1
+- formation GMAO  
+- Controle de l'intervention du 26/03/2026
+-mise en place de calorifuge sur vanne dans la salle des machine r+1
+25/03/2026|08:00|15:00|- Formation Légionelle  a st leu BWT
+30/03/2026|08:00|15:00|-Nettoyagae clim bureau d'expedition 
+            unité int et ext 
+- mise en place de l'élétro-vanne de la sation de vanne evapo 103 a 
+- Recharge Co2 cheval blanc 2x30 Kg 
+   appoint de glycol sur  le résau
+- controle de l'intervention du 24/03
+- controle de l'intervention du 24/03 ( coule toujours )
+31/03/2026|08:00|15:00|- controle journalière salle des machines 
+- controle de l'intervention du 26/03
+- controle de l'intervention du 30/03
+- controle vibratoir des compresseur de la salle des machines
+- intervention sur la tar 2 , floteur défaillant ( réparé )
+- mise sur palette + emballage des bidon vide dans le tare (45 bouteille )
+24/02/2026|08:00|16:00|-Habilitation NH3
+25/02/2026|08:00|16:00|-Formation NH3
+04/03/2026|07:30|15:30|- Formation habilitation éléctrique
+05/03/2026|07:30|15:30|- Formation habilitation éléctrique
+06/03/2026|07:30|15:30|- Formation habilitation éléctrique
+02/03/2026|08:00|15:00|- present
+03/03/2026|08:00|15:00|present
+20/03/2026|08:00|15:00|présent
+10/03/2026|08:00|15:00|present
+09/03/2026|08:00|15:00|present
+01/04/2026|08:00|09:00|intervention sur chambre foide 102 defaut ventilation cantateur thermique réenclanché
+01/04/2026|09:00|13:00|intervention pétrigel 
+- répérage avant intervention pour réssiatnce de porte
+01/04/2026|13:00|15:00|recherche d'activité
+02/04/2026|08:00|15:00|-intervention sur chambre froide 101a et 101b
+    default ventilation 
+   - dégivrage et évacution de la glace sur les 2 évapo 
+- ronde journalière 
+- intervention sur chambre froide produit fini cheval blanc 
+     - évacution des condensat continue de coulé 
+    - ressérage du raccord union ainsi que faconnage du calorifuge 
+   - dégivrage et évacution de la glace évapo 2
+- intervention sur evapo 53 a et b 
+    - prise en glace de l'évapo d'égivrage enclenché 
+- remplacement des cartouches des filtre NH3  dans les armoir
+    - armoir entré atelier : 2 masque cartouche jusqu'aux 08/2027 + 2 cartouche neuve 10/2029
+    - armoire SM : 1 masque cartouche 02/2028 + 1 neuve 10/2029 
+    - armoir SM r+1 : 1 masque cartouche 02/2028 + 2 neuve 10/2029 
+    - armoir comble : 1 masque cartouche 02/28 + 1 neuve 10*2029
+    - armoir couloir entré: 2 masque cartouche 02/2028 + 2 neuve 10/2029
+03/04/2026|08:00|15:00|- Mise en conformité des 5 armoires de sécurité  NH3
+- ronde journalière 
+-
+|#00ff9c
+|#00ff9c
+1|2026-04-05|12:11:00|12:30:00|test |#00ff9c
