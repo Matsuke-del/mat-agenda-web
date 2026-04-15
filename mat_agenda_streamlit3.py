@@ -1,18 +1,27 @@
 import streamlit as st
 import pandas as pd
+import json
+import requests
 from datetime import datetime
-import os
 from streamlit_calendar import calendar
+from supabase import create_client
 
-FILE = "agenda.txt"
+# =========================
+# SUPABASE
+# ========================
+url = "https://quamffmaxqhhtyxworou.supabase.co"
+key = "sb_publishable_zKt7ObrIa8kkHXjlvhk4tw_SUetSTZG"
+supabase = create_client(url, key)
 
+# =========================
+# CONFIGURATION PAGE
+# =========================
 st.set_page_config(layout="wide")
 st.title("🧠 MAT AGENDA TXT")
 
 # =========================
 # STYLE
 # =========================
-
 st.markdown("""
 <style>
 .stApp{background:#0b0f14;color:#00ff9c;}
@@ -22,236 +31,420 @@ h1,h2,h3{color:#00ffee;}
 """, unsafe_allow_html=True)
 
 # =========================
-# CREER FICHIER
+# LECTURE SUPABASE
 # =========================
-
-if not os.path.exists(FILE):
-    open(FILE,"w").close()
-
-# =========================
-# LECTURE TXT
-# =========================
-
+@st.cache_data
 def lire_data():
-    data = []
-    with open(FILE, "r", encoding="utf-8") as f:
-        for line in f:
-            parts = line.strip().split("|")
-            if len(parts) == 6:
-                # Restaurer les retours à la ligne
-                description = parts[4].replace("§§§", "\n")
-                data.append({
-                    "id": int(parts[0]),
-                    "date": parts[1],
-                    "debut": parts[2],
-                    "fin": parts[3],
-                    "description": description,
-                    "color": parts[5]
-                })
+    response = supabase.table("agenda").select("*").execute()
+    data = response.data
     return pd.DataFrame(data)
 
-df=lire_data()
+df = lire_data()
+
+def format_date_fr(date_str):
+    try:
+        d = datetime.strptime(date_str, "%Y-%m-%d")
+        return d.strftime("%d/%m/%Y")
+    except:
+        return date_str
+
+# =========================
+# POPUP TACHES A PREVOIR
+# =========================
+@st.dialog("📝 Tâches à prévoir")
+def popup_tasks():
+    response = supabase.table("agenda").select('id, "Tâches à prévoir"').limit(1).execute()
+    tasks = []
+    row_id = None
+
+    if response.data:
+        row_id = response.data[0]["id"]
+        raw = response.data[0].get("Tâches à prévoir")
+
+        if raw:
+            try:
+                tasks = json.loads(raw)
+            except:
+                tasks = []
+
+    st.subheader("📋 Liste des tâches")
+    new_tasks = []
+
+    if tasks:
+        for i, task in enumerate(tasks):
+            col1, col2 = st.columns([6, 1])
+            with col1:
+                st.write(f"• {task}")
+            with col2:
+                delete = st.button("❌", key=f"del_task_{i}")
+
+            if not delete:
+                new_tasks.append(task)
+    else:
+        st.info("Aucune tâche")
+
+    st.subheader("➕ Ajouter une tâche")
+    new_task = st.text_input("Nouvelle tâche")
+
+    if st.button("Ajouter tâche"):
+        if new_task.strip() and row_id:
+            new_tasks.append(new_task)
+            supabase.table("agenda").update({
+                "Tâches à prévoir": json.dumps(new_tasks)
+            }).eq("id", row_id).execute()
+            st.rerun()
+
+    if tasks != new_tasks and row_id:
+        supabase.table("agenda").update({
+            "Tâches à prévoir": json.dumps(new_tasks)
+        }).eq("id", row_id).execute()
+
+    if st.button("Fermer"):
+        st.rerun()
+
+# =========================
+# NOTIFICATION
+# =========================
+def send_push(desc, date, debut, fin, tech):
+    requests.post(
+        "https://api.pushover.net/1/messages.json",
+        data={
+            "token": "a6vqbmhhjyzu19ay371qxhmmwuwnpp",
+            "user": "uykkgtvss4kmbyuscgce5xqgdb5ufy",
+            "title": "📅 Nouvelle activité",
+            "message": f"{desc}\n📆 {date}\n⏰ {debut} → {fin}\n👷 {tech}",
+            "url": "https://mat-agenda-web2-mngwrfjcalzf3kbpdvd99n.streamlit.app",
+            "url_title": "📂 Ouvrir MAT Agenda"
+        }
+    )  
+
+# =========================
+# MODIFICATION ACTIVITE
+# =========================
+if "edit_id" in st.session_state:
+    st.subheader("✏ Modifier activité")
+
+    new_date = st.date_input(
+        "📅 Date",
+        value=pd.to_datetime(st.session_state["edit_date"]),
+        format="DD/MM/YYYY"
+    )
+
+    new_debut = st.text_input("Début", st.session_state["edit_debut"])
+    new_fin = st.text_input("Fin", st.session_state["edit_fin"])
+    new_desc = st.text_area("Description", value=st.session_state["edit_desc"])
+
+    techniciens = ["MAT", "Sébastien"]
+    tech_selected = st.selectbox(
+        "🛠 Technicien",
+        techniciens,
+        index=techniciens.index(st.session_state.get("edit_technicien", "MAT"))
+    )
+
+    color = st.color_picker("Couleur", st.session_state.get("edit_color", "#00ff9c"))
+    images = []
+    
+    if "edit_images" in st.session_state and st.session_state["edit_images"]:
+        try:
+            images = json.loads(st.session_state["edit_images"])
+        except:
+            images = []
+
+    st.subheader("Images existantes")
+    new_images_list = []
+
+    for i, img in enumerate(images):
+        col1, col2 = st.columns([5, 1])
+        with col1:
+            st.image(img, width=250)
+        with col2:
+            delete = st.checkbox("❌", key=f"delimg{i}")
+
+        if not delete:
+            new_images_list.append(img)
+
+    new_uploads = st.file_uploader(
+        "Ajouter nouvelles images",
+        type=["png", "jpg", "jpeg"],
+        accept_multiple_files=True
+    )
+
+    if st.button("Enregistrer modification"):
+        if new_uploads:
+            for img in new_uploads:
+                file_name = f"{int(datetime.now().timestamp() * 1000)}_{img.name}"
+                try:
+                    supabase.storage.from_("agenda-images").upload(file_name, img.getvalue())
+                    url = supabase.storage.from_("agenda-images").get_public_url(file_name)
+                    new_images_list.append(url)
+                except Exception as e:
+                    st.error(f"Erreur upload {img.name}: {e}")
+
+        supabase.table("agenda").update({
+            "date": new_date.isoformat(),
+            "debut": new_debut,
+            "fin": new_fin,
+            "description": new_desc,
+            "technicien": tech_selected,
+            "color": color,
+            "image_url": json.dumps(new_images_list)
+        }).eq("id", st.session_state["edit_id"]).execute()
+
+        for key in [
+            "edit_id",
+            "edit_desc",
+            "edit_date",
+            "edit_debut",
+            "edit_fin",
+            "edit_images",
+            "edit_technicien",
+            "edit_color"
+        ]:
+            st.session_state.pop(key, None)
+
+        st.success("✅ Activité modifiée")
+        st.rerun()
 
 # =========================
 # NAVIGATION
 # =========================
+page = st.sidebar.radio("Navigation", ["📅 Calendrier", "📂 Liste", "📊 Statistiques"])
 
-page=st.sidebar.radio(
-"Navigation",
-["📅 Calendrier","📂 Liste","📊 Statistiques"]
-)
+if st.button("📝 Tâches à prévoir"):
+    popup_tasks()
 
 # =========================
 # AJOUT ACTIVITE
 # =========================
-
 st.sidebar.header("➕ Ajouter activité")
+techniciens = ["MAT", "Sébastien"]
+tech_selected = st.sidebar.selectbox("🛠 Technicien", techniciens)
 
-date=st.sidebar.date_input("Date")
-debut=st.sidebar.time_input("Début")
-fin=st.sidebar.time_input("Fin")
+date = st.sidebar.date_input("📅 Date", format="DD/MM/YYYY", key="sidebar_date")
+debut = st.sidebar.time_input("Début", key="sidebar_debut")
+fin = st.sidebar.time_input("Fin", key="sidebar_fin")
+desc = st.sidebar.text_area("Description", key="sidebar_description")
+color = st.sidebar.color_picker("Couleur", "#00ff9c", key="sidebar_color")
 
-desc=st.sidebar.text_area("Description")
-color=st.sidebar.color_picker("Couleur","#00ff9c")
+images = st.sidebar.file_uploader(
+    "Images activité (plusieurs possibles)",
+    type=["png", "jpg", "jpeg"],
+    accept_multiple_files=True,
+    key="sidebar_images_upload"
+)
+
+image_urls = []
+if images:
+    for image in images:
+        try:
+            file_name = f"{int(datetime.now().timestamp() * 1000)}_{image.name}"
+            supabase.storage.from_("agenda-images").upload(file_name, image.getvalue())
+            url = supabase.storage.from_("agenda-images").get_public_url(file_name)
+            image_urls.append(url)
+        except Exception as e:
+            st.error(f"Erreur upload {image.name}: {e}")
 
 if st.sidebar.button("Ajouter activité"):
+    supabase.table("agenda").insert({
+        "date": date.isoformat(),
+        "debut": debut.strftime("%H:%M:%S"),
+        "fin": fin.strftime("%H:%M:%S"),
+        "description": desc,
+        "color": color,
+        "technicien": tech_selected,
+        "image_url": json.dumps(image_urls)
+    }).execute()
 
-    if desc.strip() == "":
-        st.sidebar.warning("Description obligatoire")
-    else:
-        # Nettoyer le texte pour le fichier TXT
-        desc_clean = desc.replace("|", " ")     # éviter le séparateur
-        desc_clean = desc_clean.replace("\n", "§§§")  # remplacer retour ligne par un marqueur spécial
-
-        new_id = 1
-        if not df.empty:
-            new_id = int(df["id"].max()) + 1
-
-        ligne = f"{new_id}|{date}|{debut.strftime('%H:%M:%S')}|{fin.strftime('%H:%M:%S')}|{desc_clean}|{color}\n"
-
-        with open(FILE, "a", encoding="utf-8") as f:
-            f.write(ligne)
-
-        st.success("Activité ajoutée")
-        st.rerun()
+    send_push(
+        desc,
+        date.strftime("%d/%m/%Y"),
+        debut.strftime("%H:%M"),
+        fin.strftime("%H:%M"),
+        tech_selected
+    )
 
 # =========================
 # TRI
 # =========================
-
 if not df.empty:
-    df=df.sort_values(["date","debut"])
+    df = df.sort_values(["date", "debut"])
 
 # =========================
 # CALCUL HEURES
 # =========================
-
 def calc_heures(row):
-
     try:
-        d=datetime.strptime(row["debut"],"%H:%M:%S")
-        f=datetime.strptime(row["fin"],"%H:%M:%S")
-
-        return (f-d).seconds/3600
+        d = datetime.strptime(row["debut"], "%H:%M:%S")
+        f = datetime.strptime(row["fin"], "%H:%M:%S")
+        return (f - d).seconds / 3600
     except:
         return 0
 
 if not df.empty:
-    df["heures"]=df.apply(calc_heures,axis=1)
-
-# =========================
-# RECHERCHE
-# =========================
-
-search=st.sidebar.text_input("🔎 Recherche")
-
-if search!="" and not df.empty:
-    df=df[df["description"].str.contains(search,case=False)]
+    df["heures"] = df.apply(calc_heures, axis=1)
 
 # =========================
 # CALENDRIER
 # =========================
-
-if page=="📅 Calendrier":
-
+if page == "📅 Calendrier":
     st.header("📅 Calendrier")
-
-    if not df.empty:
-
-        events=[]
-
-        for _,row in df.iterrows():
-
+    if df.empty:
+        st.info("Aucune activité")
+    else:
+        events = []
+        for _, row in df.iterrows():
+            raw_title = row["description"].split("\n")[0]
+            title = (raw_title[:37] + "...") if len(raw_title) > 40 else raw_title
             events.append({
-            "title":row["description"].split("\n")[0][:40],
-            "start":row["date"]+"T"+row["debut"],
-            "end":row["date"]+"T"+row["fin"],
-            "color":row["color"]
+                "id": row["id"],
+                "title": title,
+                "start": row["date"] + "T" + row["debut"],
+                "end": row["date"] + "T" + row["fin"],
+                "color": row["color"]
             })
 
-        calendar(events=events)
+        state = calendar(
+            events=events,
+            options={
+                "locale": "fr",
+                "firstDay": 1,
+                "headerToolbar": {
+                    "left": "prev,next today",
+                    "center": "title",
+                    "right": "dayGridMonth,timeGridWeek,timeGridDay"
+                },
+                "buttonText": {
+                    "today": "Aujourd'hui",
+                    "month": "Mois",
+                    "week": "Semaine",
+                    "day": "Jour"
+                }
+            },
+            callbacks=["eventClick"]
+        )
 
-        # =========================
-        # ACTIVITES PAR DATE
-        # =========================
+        @st.dialog("📋 Activité")
+        def popup_activity(row):
+            st.text_area(
+                "📄 Description (copiable)",
+                value=row["description"],
+                height=max(150, min(400, len(row["description"]) // 2)),
+                key=f"desc_{row['id']}",
+                disabled=True
+            )
+            st.write(f"📅 {format_date_fr(row['date'])}")
+            st.write(f"⏰ {row['debut']} → {row['fin']}")
 
-        st.subheader("📅 Voir les activités d'une date")
-
-        selected_date = st.date_input("Choisir une date")
-
-        day_activities = df[df["date"] == selected_date.strftime("%Y-%m-%d")]
-
-        if not day_activities.empty:
-
-            for _,row in day_activities.iterrows():
-
-                st.markdown(f"""
-### {row['debut']} → {row['fin']}
-
-{row['description']}
-""")
-
-        else:
-
-            st.info("Aucune activité pour cette date")
-
-    else:
-
-        st.info("Aucune activité")
+        if state and state.get("eventClick"):
+            event_id = state["eventClick"]["event"]["id"]
+            filtered = df[df["id"].astype(str) == str(event_id)]
+            if not filtered.empty:
+                row = filtered.iloc[0]
+                popup_activity(row)
 
 # =========================
 # LISTE
 # =========================
-
-if page=="📂 Liste":
-
+if page == "📂 Liste":
     st.header("📂 Activités")
+    col_search1, col_search2, col_search3 = st.columns([3, 3, 1])
+    
+    with col_search1:
+        search_text = st.text_input("🔎 Recherche mot clé")
+    with col_search2:
+        search_date = st.date_input("📅 Recherche par date", format="DD/MM/YYYY", key="search_date")
+    with col_search3:
+        reset = st.button("❌")
+    
+    if reset:
+        search_text = ""
+        search_date = None
 
-    if df.empty:
-        st.info("Aucune activité")
+    filtered_df = df.copy()
 
+    if search_text:
+        mots = search_text.split()
+        for mot in mots:
+            filtered_df = filtered_df[filtered_df["description"].astype(str).str.contains(mot, case=False, na=False)]
+
+    if search_date:
+        filtered_df = filtered_df[filtered_df["date"] == search_date.strftime("%Y-%m-%d")]
+
+    if filtered_df.empty:
+        st.info("Aucune activité trouvée")
     else:
-
-        for _,row in df.iterrows():
-
-            col1,col2=st.columns([6,1])
-
+        for _, row in filtered_df.iterrows():
+            col1, col2, col3 = st.columns([6, 1, 1])
             with col1:
+                st.text_area(
+                    "📄 Description (copiable)",
+                    value=row["description"],
+                    height=max(150, min(400, len(row["description"]) // 2)),
+                    key=f"desc_{row['id']}",
+                    disabled=True
+                )
+            st.write(f"📅 {format_date_fr(row['date'])}")
+            st.write(f"⏰ {row['debut']} → {row['fin']}")
+            st.write(f"👷 Technicien : {row.get('technicien', 'Non défini')}")
 
-                st.markdown(f"""
-### {row['description']}
+            if st.button("Fermer", key=f"close{row['id']}"):
+                st.rerun()
 
-📅 {row['date']}
+            if "image_url" in row and row["image_url"]:
+                try:
+                    images = json.loads(row["image_url"])
+                except:
+                    images = [row["image_url"]]
+                
+                if not isinstance(images, list):
+                    images = [images]
 
-⏰ {row['debut']} → {row['fin']}
-
-⏱ {round(row['heures'],2)} h
-""")
+                valid_images = [img for img in images if isinstance(img, str) and img.startswith("http")]
+                if valid_images:
+                    img_cols = st.columns(len(valid_images))
+                    for i, img in enumerate(valid_images):
+                        img_cols[i].image(img, use_container_width=True)
 
             with col2:
+                if st.button("✏", key=f"edit{row['id']}"):
+                    st.session_state["edit_id"] = row["id"]
+                    st.session_state["edit_desc"] = row["description"]
+                    st.session_state["edit_date"] = row["date"]
+                    st.session_state["edit_debut"] = row["debut"]
+                    st.session_state["edit_fin"] = row["fin"]
+                    st.session_state["edit_images"] = row.get("image_url", "[]")
+                    st.session_state["edit_technicien"] = row.get("technicien", "MAT")
+                    st.session_state["edit_color"] = row.get("color", "#00ff9c")
+                    st.stop()
 
-                if st.button("❌",key=row["id"]):
-
-                    lignes=[]
-
-                    with open(FILE,"r",encoding="utf-8") as f:
-
-                        for line in f:
-
-                            if not line.startswith(str(row["id"])+"|"):
-                                lignes.append(line)
-
-                    with open(FILE,"w",encoding="utf-8") as f:
-                        f.writelines(lignes)
-
-                    st.rerun()
+            with col3:
+                if st.button("❌", key=f"del{row['id']}"):
+                    supabase.table("agenda").delete().eq("id", row["id"]).execute()
+                    st.stop()
 
 # =========================
 # STATISTIQUES
 # =========================
-
-if page=="📊 Statistiques":
-
+if page == "📊 Statistiques":
     st.header("📊 Statistiques")
-
     if df.empty:
-
         st.info("Pas de données")
-
     else:
+        techniciens = ["Tous"] + sorted(df["technicien"].dropna().unique())
+        tech_selected = st.selectbox("👷 Choisir technicien", techniciens)
 
-        col1,col2=st.columns(2)
+        df_filtered = df.copy()
+        if tech_selected != "Tous":
+            df_filtered = df[df["technicien"] == tech_selected]
 
+        col1, col2 = st.columns(2)
         with col1:
-            st.metric("⏱ Temps total",f"{round(df['heures'].sum(),2)} h")
-
+            st.metric("⏱ Temps total", f"{round(df_filtered['heures'].sum(), 2)} h")
         with col2:
-            st.metric("📅 Activités",len(df))
+            st.metric("📅 Activités", len(df_filtered))
 
-        df["mois"]=pd.to_datetime(df["date"]).dt.strftime("%Y-%m")
-
-        stats=df.groupby("mois")["heures"].sum()
+        df_filtered["mois"] = pd.to_datetime(df_filtered["date"]).dt.strftime("%Y-%m")
+        stats = df_filtered.groupby("mois")["heures"].sum()
 
         st.subheader("Heures par mois")
-
         st.bar_chart(stats)
