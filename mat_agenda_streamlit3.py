@@ -325,13 +325,9 @@ if page == "📅 Calendrier":
 
         @st.dialog("📋 Activité")
         def popup_activity(row):
-            st.text_area(
-                "📄 Description (copiable)",
-                value=row["description"],
-                height=max(150, min(400, len(row["description"]) // 2)),
-                key=f"desc_{row['id']}",
-                disabled=True
-            )
+            st.subheader("📄 Description")
+
+            st.code(row["description"])
             st.write(f"📅 {format_date_fr(row['date'])}")
             st.write(f"⏰ {row['debut']} → {row['fin']}")
 
@@ -376,13 +372,9 @@ if page == "📂 Liste":
         for _, row in filtered_df.iterrows():
             col1, col2, col3 = st.columns([6, 1, 1])
             with col1:
-                st.text_area(
-                    "📄 Description (copiable)",
-                    value=row["description"],
-                    height=max(150, min(400, len(row["description"]) // 2)),
-                    key=f"desc_{row['id']}",
-                    disabled=True
-                )
+                st.subheader("📄 Description")
+
+            st.code(row["description"])
             st.write(f"📅 {format_date_fr(row['date'])}")
             st.write(f"⏰ {row['debut']} → {row['fin']}")
             st.write(f"👷 Technicien : {row.get('technicien', 'Non défini')}")
